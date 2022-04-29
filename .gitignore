@@ -1,0 +1,5 @@
+**/*.pkl
+**/*.pyc
+**/*.env
+**wandb
+**lightning_logs
