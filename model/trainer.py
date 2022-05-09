@@ -48,7 +48,7 @@ def main():
     wandb_logger = WandbLogger(project='aliproduct_2022_cvpr', job_type='Train',
         reinit=dist.is_available() and dist.is_initialized() and dist.get_rank() == 0)
     wandb_logger.watch(model,log="all", log_freq=100)          
-    trainer = Trainer(accelerator="gpu",devices=4,strategy="ddp",max_epochs=CONFIG.epoch,logger=wandb_logger,callbacks=[checkpoint_callback],precision=16,deterministic=True)
+    trainer = Trainer(accelerator="gpu",devices=4,strategy="deepspeed_stage_3",max_epochs=CONFIG.epoch,logger=wandb_logger,callbacks=[checkpoint_callback],precision=16,deterministic=True)
 
     trainer.fit(model,train_loader)
 

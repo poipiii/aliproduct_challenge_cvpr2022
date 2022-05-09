@@ -1,5 +1,10 @@
 **/*.pkl
+**.pkl
+
 **/*.pyc
 **/*.env
 **wandb
 **lightning_logs
+**/*.ckpt
+**/*.csv
+**.csv

@@ -1,4 +1,5 @@
 import clip
+from cv2 import transform
 from sqlalchemy import true
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -28,7 +29,7 @@ class ALIPRODUCT_DATASET():
         image_name = self.images[idx]
         text = self.texts[idx]
         if self.test:
-            image = cv2.imread(image_name)
+            image = cv2.imread(f"{self.dir}/{self.folder}/{image_name}")
         else:
             image = cv2.imread(image_name)
         image = Image.fromarray(image).convert("RGB")
