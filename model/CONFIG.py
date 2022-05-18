@@ -4,7 +4,7 @@ import os
 class CONFIG:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     batch_size  = 84
-    test_batch_size = 1000
+    test_batch_size = 160
     epoch = 5
     learning_rate = 5e-6
     betas = (0.9,0.98)

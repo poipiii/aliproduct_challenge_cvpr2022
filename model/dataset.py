@@ -15,13 +15,14 @@ import pickle
 import cv2
 
 class ALIPRODUCT_DATASET():
-    def __init__(self,images,texts,dir,folder,preprocess,test=False):
+    def __init__(self,images,texts,dir,folder,preprocess,tokenize=True,test=False):
         self.images = images
         self.texts = texts
         self.dir = dir
         self.folder = folder
         self.preprocess = preprocess
         self.test = test
+        self.tokenize = tokenize
         # self.z_shot_labels,self.z_shot_label_map = self.create_z_shot_labels(self.df["label_name"].unique(),self.df["label"].unique())
     def __len__(self):
         return(len(self.images))
@@ -29,12 +30,14 @@ class ALIPRODUCT_DATASET():
         image_name = self.images[idx]
         text = self.texts[idx]
         if self.test:
-            image = cv2.imread(f"{self.dir}/{self.folder}/{image_name}")
+            image = Image.open(f"{self.dir}/{self.folder}/{image_name}").convert("RGB")
         else:
-            image = cv2.imread(image_name)
-        image = Image.fromarray(image).convert("RGB")
+            image = Image.open(image_name).convert("RGB")
         image = self.preprocess(image)
-        text_caption = clip.tokenize(f"this is a {text}",truncate=True)
+        if self.tokenize:
+             text_caption = clip.tokenize(text,truncate=True)
+        else:
+            text_caption = text
         return image,text_caption
     # def create_z_shot_labels(self,label_names,label):
     #     z_shot_labels = []
@@ -48,25 +51,25 @@ class ALIPRODUCT_DATASET():
 
 
 
-def prepare_data(df_path,image_data_dir,image_data_folder,image_col,label_col,batch_size,preprocess,random_state,split_size=0.2,test=False,use_all=False):
+def prepare_data(df_path,image_data_dir,image_data_folder,image_col,label_col,batch_size,preprocess,random_state,split_size=0.2,test=False,use_all=False,tokenize=True):
     df = pd.read_csv(df_path)
     images = df[image_col].values.tolist()
     texts = df[label_col].values.tolist()
     if test:
-        test_data = ALIPRODUCT_DATASET(images,texts,image_data_dir,image_data_folder,preprocess,test=test)
+        test_data = ALIPRODUCT_DATASET(images,texts,image_data_dir,image_data_folder,preprocess,test=test,tokenize=tokenize)
         test_dataloader = DataLoader(test_data,batch_size,num_workers=12,pin_memory=True)
         return test_dataloader,df
 
     else:
         if use_all:
-            train_data =  ALIPRODUCT_DATASET(images,texts,image_data_dir,image_data_folder,preprocess,test=test)
-            train_dataloader = DataLoader(train_data,batch_size,shuffle=True,num_workers=12,pin_memory=True)
-            return train_dataloader,None
+            train_data =  ALIPRODUCT_DATASET(images,texts,image_data_dir,image_data_folder,preprocess,test=test,tokenize=tokenize)
+            train_dataloader = DataLoader(train_data,batch_size,shuffle=False,num_workers=12,pin_memory=True)
+            return train_dataloader,df
 
         else:
             train_image,val_image ,train_text,val_text = train_test_split(images,texts,random_state= random_state,test_size=split_size)
-            train_data =  ALIPRODUCT_DATASET(train_image,train_text,image_data_dir,image_data_folder,preprocess,test=test)
-            val_data = ALIPRODUCT_DATASET(val_image,val_text,image_data_dir,image_data_folder,preprocess,test=test)
+            train_data =  ALIPRODUCT_DATASET(train_image,train_text,image_data_dir,image_data_folder,preprocess,test=test,tokenize=tokenize)
+            val_data = ALIPRODUCT_DATASET(val_image,val_text,image_data_dir,image_data_folder,preprocess,test=test,tokenize=tokenize)
             train_dataloader = DataLoader(train_data,batch_size,shuffle=True,num_workers=12,pin_memory=True)
             val_dataloader = DataLoader(val_data,batch_size,shuffle=False,num_workers=12)
 
