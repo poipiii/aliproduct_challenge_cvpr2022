@@ -1,0 +1,4 @@
+{alpha: 0.4, ann_root: /home/user/Desktop/AliProduct2022/, batch_size_test: 4, batch_size_train: 24,
+dataset: aliproduct2, image_root: /home/user/Desktop/AliProduct2022/, image_size: 384,
+init_lr: 1e-05, k_test: 256, max_epoch: 5, min_lr: 0, negative_all_rank: true, pretrained: /home/user/Desktop/BLIP/output/Retrieval_aliproduct2/save_checkpoint_8_fri.pth,
+queue_size: 57600, vit: base, vit_ckpt_layer: 4, vit_grad_ckpt: true, weight_decay: 0.05}

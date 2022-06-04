@@ -1,0 +1,16 @@
+alpha: 0.4
+batch_size: 8
+image_size: 224
+init_lr: 0.0003
+laion_path: ''
+lr_decay_rate: 0.9
+max_epoch: 20
+min_lr: 1e-06
+queue_size: 57600
+train_file: [/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/data/aliproduct2_val_pretrain_ann.json]
+vit: base
+vit_ckpt_layer: 0
+vit_grad_ckpt: false
+warmup_lr: 1e-06
+warmup_steps: 3000
+weight_decay: 0.05
