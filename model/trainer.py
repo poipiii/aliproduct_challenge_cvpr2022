@@ -18,6 +18,7 @@ from argparse import ArgumentParser
 from CONFIG import CONFIG
 from dataset import prepare_data 
 from aliproduct_model import ALIPRODUCT_CLIP
+import open_clip
 from pytorch_lightning.loggers import WandbLogger
 import wandb 
 import time
@@ -29,26 +30,26 @@ shutup.please()
 
 def main():
     seed_everything(CONFIG.global_random_state, workers=True)
-    clip_model,preprocess = clip.load(CONFIG.model_name,device=CONFIG.device,jit=False)
+    clip_model,_,preprocess = open_clip.create_model_and_transforms(CONFIG.model_name,pretrained='openai')
     print("loading clip model..")
     print("initalising finetuning clip model..")
     model = ALIPRODUCT_CLIP(clip_model)
     # clip.model.convert_weights(model)
-    model.float()
+    # model.float()
     print("preparing data..")
-    train_loader,val_loader = prepare_data(CONFIG.df_path,CONFIG.image_data_dir,CONFIG.image_data_folder
+    train_loader,df = prepare_data(CONFIG.df_path,CONFIG.image_data_dir,CONFIG.image_data_folder
     ,CONFIG.image_col,CONFIG.label_col,CONFIG.batch_size,preprocess,CONFIG.global_random_state,use_all=True)
     checkpoint_callback = ModelCheckpoint(monitor="train_clip_loss",
-    dirpath=".",
+    dirpath="/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/train_v3_vit32b",
     filename="aliproduct_2022_cvpr"+CONFIG.model_name+"_{train_clip_loss:.5f}",
     save_top_k=CONFIG.epoch,
     mode="min",
-    save_last=False)
+    save_last=True)
  
     wandb_logger = WandbLogger(project='aliproduct_2022_cvpr', job_type='Train',
         reinit=dist.is_available() and dist.is_initialized() and dist.get_rank() == 0)
     wandb_logger.watch(model,log="all", log_freq=100)          
-    trainer = Trainer(accelerator="gpu",devices=4,strategy="deepspeed_stage_3",max_epochs=CONFIG.epoch,logger=wandb_logger,callbacks=[checkpoint_callback],precision=16,deterministic=True)
+    trainer = Trainer(accelerator="gpu",devices=4,strategy="deepspeed",max_epochs=CONFIG.epoch,logger=wandb_logger,callbacks=[checkpoint_callback],precision=16,deterministic=True)
 
     trainer.fit(model,train_loader)
 

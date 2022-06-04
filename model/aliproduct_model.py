@@ -29,11 +29,11 @@ class ALIPRODUCT_CLIP(pl.LightningModule):
         # img = img.to(CONFIG.device)
         # label = label.to(CONFIG.device)
         
-        image_features = self.model.encode_image(img)
-        text_features = self.model.encode_text(label)
+        unscale_image_features = self.model.encode_image(img)
+        unscale_text_features = self.model.encode_text(label)
 
-        image_features /= image_features.norm(dim=-1, keepdim=True)
-        text_features /= text_features.norm(dim=-1, keepdim=True)
+        image_features = unscale_image_features / unscale_image_features.norm(dim=-1, keepdim=True)
+        text_features = unscale_text_features / unscale_text_features.norm(dim=-1, keepdim=True)
         logit_scale = self.model.logit_scale.exp()
     
 
@@ -46,14 +46,16 @@ class ALIPRODUCT_CLIP(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(
+        optimizer = torch.optim.AdamW(
             self.model.parameters(),
             lr=CONFIG.learning_rate,
             betas=CONFIG.betas,
             eps=CONFIG.epsilion,
             weight_decay=CONFIG.weight_decay
         )
-        return optimizer
+        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,T_max=3000)
+
+        return ([optimizer],[lr_scheduler])
     
     def training_step(self,batch,batch_idx):
         image,text = batch
@@ -66,15 +68,15 @@ class ALIPRODUCT_CLIP(pl.LightningModule):
         logits_per_text = logit_scale * text_features @ image_features.t()
         ground_truth = torch.arange(len(logits_per_image)).to(CONFIG.device)
         total_loss = (self.loss_img(logits_per_image,ground_truth) + self.loss_txt(logits_per_text,ground_truth))/2
-        self.log('train_clip_loss',total_loss,on_step=False, on_epoch=True,prog_bar=True)
+        self.log('train_clip_loss',total_loss,on_step=True, on_epoch=True,prog_bar=True)
         return total_loss
 
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
-        convert_models_to_fp32(self.model)           
-        #self.model.float()
-        optimizer.step(closure=optimizer_closure)
-        clip.model.convert_weights(self.model)
+    # def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
+    #                optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+    #     convert_models_to_fp32(self.model)           
+    #     #self.model.float()
+    #     optimizer.step(closure=optimizer_closure)
+    #     clip.model.convert_weights(self.model)
 
 
     def validation_step(self,batch,batch_idx):

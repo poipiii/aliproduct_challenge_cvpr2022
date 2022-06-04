@@ -26,3 +26,11 @@ class ALIPRODUCT_BLIP(pl.LightningModule):
             image_features = image_features.detach().cpu()
             text_features = text_features.detach().cpu()
             return image_features,text_features
+    # def on_predict_epoch_end(self, results):
+    #     if self.trainer.is_global_zero:
+    #         print("gather all")
+    #         all_preds = self.all_gather(results)
+    #         print("gather all finish")
+    #         print(len(all_preds))
+    #         # print(all_preds[0][0].size())
+    #         return all_preds
