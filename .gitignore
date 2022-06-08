@@ -4,6 +4,7 @@
 **/*.env
 **wandb
 **lightning_logs
+**/*lightning_logs
 **/*.ckpt
 **/*.pt
 **/*.csv
