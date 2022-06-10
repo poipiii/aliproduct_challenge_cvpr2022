@@ -4,7 +4,6 @@ sys.path.insert(0, '..')
 module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
     sys.path.append(module_path+"/model")
-import clip
 import torch
 from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
@@ -23,7 +22,6 @@ import pickle
 from aliproduct_blip_model import ALIPRODUCT_BLIP
 from dataset import ALIPRODUCT_DATASET,prepare_data
 from CONFIG import CONFIG
-import faiss
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
 from pytorch_lightning.callbacks import BasePredictionWriter
@@ -37,47 +35,62 @@ preprocess = transforms.Compose([
         transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
         ]) 
 
-def save_pred(pred,process_rank):
-    print("saving features")
-    filename = f"blip_train_features_noisy_32_{str(process_rank)}.pkl"
-    file = open(filename,'wb')
-    pickle.dump(pred,file)
-    file.close()
-
 
 class PredictionWriter(BasePredictionWriter):
-    def __init__(self, output_dir: str):
+    def __init__(self, output_dir: str,file_prefix:str):
         super().__init__(write_interval="epoch")
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
 
     def write_on_epoch_end(self, trainer, pl_module: "LightningModule", predictions, batch_indices):
-        torch.save(predictions, os.path.join(self.output_dir, f"blip_train_features_noisy_32_{trainer.global_rank}.pt"))
+        torch.save(predictions, os.path.join(self.output_dir, f"{self.file_prefix}_{trainer.global_rank}.pt"))
 
-def test_feature(caption_col,clip_model):
+def test_feature(train_csv,caption_col,clip_model,head,num_of_gpu,file_prefix_name,file_output):
     pl.seed_everything(CONFIG.global_random_state)
-    test_loader,df = prepare_data("/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/data/train_data_noisy_32.csv",
+    test_loader,df = prepare_data(train_csv,
     CONFIG.test_image_data_dir,CONFIG.test_image_data_folder
-    ,CONFIG.image_col,caption_col,128,preprocess,CONFIG.global_random_state,test=False,use_all=True,tokenize=False)
-    trainer = Trainer(gpus=4,strategy="deepspeed",callbacks=[PredictionWriter("./predictions/")])
+    ,CONFIG.image_col,caption_col,256,preprocess,CONFIG.global_random_state,test=False,use_all=True,tokenize=False)
+    print("shape of data to extract:",df.shape)
+    if num_of_gpu > 1:
+        trainer = Trainer(gpus=4,strategy="deepspeed",callbacks=[PredictionWriter(file_output,file_prefix_name)])
+    else:
+        trainer = Trainer(gpus=1,callbacks=[PredictionWriter(file_output,file_prefix_name)])
     pred = trainer.predict(clip_model,test_loader)
-    save_pred(pred,trainer.global_rank)
-    full_pred = tuple(map(torch.concat, zip(*pred)))
-    image_embed,text_embed = full_pred    
-    return image_embed,text_embed
-
-
-col_to_test =  "caption"
-checkpoint = "/home/ubuntu/Desktop/Retrieval_aliproduct2_blip_large/save_checkpoint_5.pth"
-clip_model =ALIPRODUCT_BLIP(checkpoint,image_size,vit="large")
-image_embed,text_embed = test_feature(col_to_test,clip_model)
+    if head == "itc":
+        full_pred = tuple(map(torch.concat, zip(*pred)))
+        image_embed,text_embed = full_pred    
+        return image_embed,text_embed
+    else:
+        return pred
+    
 
 
 
-# single_pair_cosine = np.array(list((txt @ img.T).item() for txt ,img in tqdm(zip(text_embed,image_embed))))
 
-# clean_df["single_pair_cosine"] = single_pair_cosine
 
-# clean_df.to_csv("../data/train_data_v2.csv")
+if __name__ == "__main__":
+
+    #filepath and file name to train csv file 
+    train_csv = "/home/user/Desktop/AliProduct2022/train_data_v5.csv"
+
+    #caption column to run itm score on found in train csv  
+    col_to_test =  "caption"
+
+    #checkpoint of blip model you want to use 
+    checkpoint = "/home/user/Desktop/large_v5/save_checkpoint_4.pth"
+
+    #number of gpu to use for generating itm score recommended 4 gpus 
+    num_of_gpu = 4
+
+    #prefix name of each file that stores itm scores, example of output prefix_gpu_rank.pt 
+    file_prefix_name = "blip_itm_train_v5"
+
+    #folder where itm scores will be stored 
+    file_output = "./itm_score_predictions"
+
+    clip_model =ALIPRODUCT_BLIP(checkpoint,image_size,vit="large",head="itm")
+    pred = test_feature(train_csv,col_to_test,clip_model,"itm",num_of_gpu,file_prefix_name,file_output)
+
+
 
 

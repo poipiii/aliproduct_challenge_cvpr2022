@@ -24,7 +24,6 @@ class ALIPRODUCT_DATASET():
         self.preprocess = preprocess
         self.test = test
         self.tokenize = tokenize
-        # self.z_shot_labels,self.z_shot_label_map = self.create_z_shot_labels(self.df["label_name"].unique(),self.df["label"].unique())
     def __len__(self):
         return(len(self.images))
     def __getitem__(self,idx):
@@ -40,16 +39,7 @@ class ALIPRODUCT_DATASET():
         else:
             text_caption = text
         return image,text_caption
-    # def create_z_shot_labels(self,label_names,label):
-    #     z_shot_labels = []
-    #     z_shot_label_map  = {}
-    #     for label_name, label, idx in zip(label_names, label, range(len(label))):
-    #         z_shot_label = f"this is a {label_name}"
-    #         z_shot_labels.append(z_shot_label)
-    #         z_shot_label_map[idx] = {"label_name": label_name, "label": label}
-    #     z_shot_labels = clip.tokenize(z_shot_labels)
-    #     return z_shot_labels,z_shot_label_map
-
+   
 
 
 def prepare_data(df_path,image_data_dir,image_data_folder,image_col,label_col,batch_size,preprocess,random_state,split_size=0.2,test=False,use_all=False,tokenize=True):
