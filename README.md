@@ -137,15 +137,12 @@ if you would like to test feature fusion,score fusion and other ensambling metho
 ## Acknowledgments
 
 ### [CLIP github repo](https://github.com/openai/CLIP)
-```{johnson2019billion,
-  title={Billion-scale similarity search with {GPUs}},
-  author={Johnson, Jeff and Douze, Matthijs and J{\'e}gou, Herv{\'e}},
-  journal={IEEE Transactions on Big Data},
-  volume={7},
-  number={3},
-  pages={535--547},
-  year={2019},
-  publisher={IEEE}
+```
+@inproceedings{Radford2021LearningTV,
+  title={Learning Transferable Visual Models From Natural Language Supervision},
+  author={Alec Radford and Jong Wook Kim and Chris Hallacy and A. Ramesh and Gabriel Goh and Sandhini Agarwal and Girish Sastry and Amanda Askell and Pamela Mishkin and Jack Clark and Gretchen Krueger and Ilya Sutskever},
+  booktitle={ICML},
+  year={2021}
 }
 ```
 ### [BLIP Github repo](https://github.com/salesforce/BLIP)
