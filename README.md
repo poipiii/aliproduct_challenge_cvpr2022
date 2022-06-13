@@ -79,10 +79,37 @@ val_data_csv = "../data/val_data_map.csv"
 #output file path and name for modified validation data 
 output_modified_val_data_csv = "../data/val_data_prompt_clean.csv"
 ```
+#### Cleaning data using Cosine/ITM score 
+1. to generate the Cosine/ITM score for your train data first navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/model/test_blip_filter_multi.py` next configure the variables shown in the sample code below to specify the type of scoring to use as well as other options 
+```py
 
+    #which score type to use , if Cosine use "itc" head if itm use "itm" head
+    blip_score_head = "itm"
+    #filepath and file name to train csv file 
+    train_csv = "/home/user/Desktop/AliProduct2022/train_data_v5.csv"
+
+    #caption column to run itm score on found in train csv  
+    col_to_test =  "caption"
+
+    #checkpoint of blip model you want to use 
+    checkpoint = "/home/user/Desktop/large_v5/save_checkpoint_4.pth"
+
+    #number of gpu to use for generating itm score recommended 4 gpus 
+    num_of_gpu = 4
+
+    #prefix name of each file that stores itm scores, example of output prefix_gpu_rank.pt 
+    file_prefix_name = "blip_itm_train_v5"
+
+    #folder where itm scores will be stored 
+    file_output = "./itm_score_predictions"
+
+```
+2. once you have configured the variables to your own specifications , open your terminal and type in or copy the following command `cd /home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/model` to change your working directory to the `code` folder 
+3. lastly run the script by typing or copying the following command `python test_blip_filter_multi.py` the generated result will be split into number of files = `num_of_gpu` specified in the variables configuration step above 
+4. to combine all files  
 ### Validating models
-to test the models 3 almost identical scirpts have been prepared to test all checkpoints of clip,blip base and blip large to test the models ensure you have access to a gpu woth a minimum of 12 gb of vram 
-1. To test all **blip base** checkpoints navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/test_blip_checkpoints.ipynb` and edit the 2nd code cell as shown in the sample code below to specify the caption you want to test and the checkpoints you want to test and the path to the validation data csv you have generated in the data preperation step 
+to test the models 2 almost identical scripts  have been prepared to test all checkpoints of blip base and blip large to test the models ensure you have access to a gpu woth a minimum of 12 gb of vram 
+1. To test all **blip base** checkpoints navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/test_blip_checkpoints.ipynb` and edit the 2nd code cell as shown in the sample code below to specify the caption you want to test and the checkpoints you want to test and the path to the validation data csv you have generated in the data preparation step 
 ```py Edit this to specify checkpoints of models you want to test 
 defined as key value pair of {"checpoint name/identifier:"full path to checkpoint"}'''
 
@@ -95,9 +122,9 @@ caption_to_test =  ["caption"]
 dataframe_path = "/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/data/val_data_prompt_clean.csv"
 ```
 
-2. To test all **blip large** checkpoints navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/test_blip_checkpoints large.ipynb` and edit the 2nd code cell as shown in the sample code below to specify the caption you want to test and the checkpoints you want to test and the path to the validation data csv you have generated in the data preperation step 
+2. To test all **blip large** checkpoints navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/test_blip_checkpoints large.ipynb` and edit the 2nd code cell as shown in the sample code below to specify the caption you want to test and the checkpoints you want to test and the path to the validation data csv you have generated in the data preparation step 
 ```py Edit this to specify checkpoints of models you want to test 
-defined as key value pair of {"checpoint name/identifier:"full path to checkpoint"}'''
+defined as key value pair of {"checkpoint name/identifier:"full path to checkpoint"}'''
 
 checkpoints = {"base":"path to base model"}
 
@@ -108,7 +135,7 @@ caption_to_test =  ["caption"]
 dataframe_path = "/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/data/val_data_prompt_clean.csv"
 ```
 
-### Running infrence on test data
+### Running inference on test data
 before you can run any of the test notebooks for submission you will first need to prepare the test data for testing to do this please follow the steps below 
 1. to format the data for testing navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/test_set_inference/prepare_test_data.ipynb` edit the following file paths in the 2nd code cell if needed as shown in the sample code snippet below and finally run the notebook and you will generate a `.csv` file of the test data 
 ```py
@@ -123,11 +150,83 @@ models = [
     ]
 test_df_path = "path to test.csv"
 ```
-3. lastly to run infrence on test data to geneerate and prepare submission navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/test_set_inference/single_model_pred.ipynb` and run the noetbook if you want to generate submissions/predictions for only 1 model,if you would like to generate submissions/predictions for ensamble of models navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/test_set_inference/ensemble.ipynb` and run the notebook 
+3. lastly to run inference on test data to generate and prepare submission navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/test_set_inference/single_model_pred.ipynb` and run the notebook if you want to generate submissions/predictions for only 1 model,if you would like to generate submissions/predictions for ensembles of models navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/test_set_inference/ensemble.ipynb` and run the notebook 
 #### testing feature fusion and score fusion and other ensambling methods 
-if you would like to test feature fusion,score fusion and other ensambling methods navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/test_set_inference/test ensemble strategy.ipynb` and edit and run the notebook to expriment with methods
+if you would like to test feature fusion,score fusion and other ensembling methods navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/test_set_inference/test ensemble strategy.ipynb` and edit and run the notebook to experiment with methods
+
+### Training BLIP
+Before you can train blip you will first need to process the aliproduct 2 data by following the data preparation steps above 
+#### Preparing/formatting data for blip training
+1. to prepare your data for blip training navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/eda/blip_dataset_format.ipynb` and edit the 2nd code cell if needed to specify the,input and output files and file paths for each image, refer the the sample code below on how to edit the code , after editing run the notebook to generate the `.json` file for blip training
+```py
+#file path to where you store your train csv filein your machine if you do not have this file run aliproduct_cvpr_eda_2022.ipynb to generate the base csv file 
+train_csv_path = "/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/data/train_data_v6_base.csv"
+
+#file path to where you store your validation csv file in your machine if you do not have this file run aliproduct_cvpr_eda_2022.ipynb to generate the base csv file 
+val_csv_path = "/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/data/val_data_map.csv"
+
+'''column name in your train csv file that contains the file path for each image 
+e.g train_text_img_pairs_{i}/train_text_img_pairs_{i}_compressed/  or train_text_img_pairs_{i}_compressed/ 
+where i denotes the file number from 1-9 in the aliproduct dataset''' 
+
+train_images_folder_col = "image_reletive_folder"
 
 
+#name of folder that your validation images are stored  
+val_images_folder = "val_imgs"
+
+
+
+'''ONLY FOR PRETRAINING: column name in your train csv file that contains the file path for each image 
+e.g /home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/train_text_img_pairs_{i}/train_text_img_pairs_{i}_compressed/image_1.jpg  
+or /home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/train_text_img_pairs_{i}_compressed/image_1.jpg 
+where i denotes the file number from 1-9 in the aliproduct dataset''' 
+train_images_full_path_col = "full_path"
+
+
+#name of column of train csv that contains the captions
+train_caption_col_name = "caption"
+
+#name of column of train csv that contains the the image names with file extension e.g sample_image_1.jpg,sample_image_2.png,etc
+train_image_col_name = "product"
+
+#name of column of validation csv that contains the captions
+val_caption_col_name = "caption"
+
+#name of column of validation csv that contains the the image names with file extension e.g sample_image_1.jpg,sample_image_2.png,etc
+val_image_col_name = "product"
+
+
+#name of output json file for train data 
+train_output_filename = "../data/aliproduct2_train_ann_v6_large_08.json"
+
+#name of output json file for validation data 
+val_output_filename = "../data/aliproduct2_val_ann.json"
+
+#name of output json file for training data used only for pretraining  
+pretrain_output_filename = "../data/aliproduct2_pretrain_ann_v2.json"
+```
+##### Training configuration for Retrieval task  
+  2. once you have generated the `.json` file containing your training and validation data for training blip you need to edit the blip config file and dataset file to do this first navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/model/BLIP/configs/retrieval_aliproduct2.yaml` and edit the `.yaml` file accordingly next navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/model/BLIP/data/aliproduct2_dataset.py` and look for the `filename/filenames` variables in each dataset `class` and edit the `.json` filenames to match the ones you have created in the Preparing/formatting data for blip training step
+##### Training configuration for Captioning task  
+3. similar to training blip for Retrieval task , once you have generated the `.json` file containing your training and validation data for training blip you need to edit the blip config file and dataset file to do this first navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/model/BLIP/configs/caption_aliproduct2.yaml` and edit the `.yaml` file accordingly next navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/model/BLIP/data/aliproduct2_dataset.py` and look for the `filename/filenames` variables in each dataset `class` and edit the `.json` filenames to match the ones you have created in the Preparing/formatting data for blip training step
+
+#### Running BLIP training scripts
+to run blip training scripts first open your terminal and type in `cd /home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/model/BLIP` to change your working directory to the BLIP folder 
+##### Running Retrieval training script
+1. to run the blip training script for retrieval task type or copy the following command
+```bash
+python -m torch.distributed.run --nproc_per_node=4 train_retrieval.py \
+--config ./configs/"name of config file".yaml \
+--output_dir output/"name of out put folder where model checkpoints are stored"
+``` 
+##### Running Captioning training script
+2. to run the blip training script for retrieval task type or copy the following command
+```bash
+python -m torch.distributed.run --nproc_per_node=4 train_caption.py \
+--config ./configs/"name of config file".yaml \
+--output_dir output/"name of out put folder where model checkpoints are stored"
+``` 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
