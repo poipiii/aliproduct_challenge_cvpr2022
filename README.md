@@ -106,7 +106,7 @@ caption_to_test =  ["caption"]
 #path to validation data after preporcessing into csv file format 
 dataframe_path = "/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/data/val_data_prompt_clean.csv"
 ```
-1. To test **clip** checkpoints navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/test_clip_checkpoint.ipynb` and edit the 3rd code cell as shown in the sample code below to specify the caption you want to test and the checkpoints you want to test and the path to the validation data csv you have generated in the data preparation step 
+3. To test **clip** checkpoints navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/test_clip_checkpoint.ipynb` and edit the 3rd code cell as shown in the sample code below to specify the caption you want to test and the checkpoints you want to test and the path to the validation data csv you have generated in the data preparation step 
 ```py 
 #size / architecture of clip model 
 clip_model_size = "ViT-B-32"
