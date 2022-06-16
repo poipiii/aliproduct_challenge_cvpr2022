@@ -1,13 +1,11 @@
 <h1 align="center">cvpr aliproduct 2022</h1>
 
-  <p align="center">
-    Data processing , training and evalaution code used for CVPR 2022 AliProducts Challenge 
 </div>
 
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-this project contains the codes used for the CVPR  aliproduct 2 Challenge competition on cross-modal image retrival 
+this project contains Data processing ,training and evalaution code for clip and blip models used for CVPR 2022 AliProducts Challenge 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- GETTING STARTED -->
@@ -26,7 +24,7 @@ Ensure that you have [anaconda](https://www.anaconda.com/products/distribution) 
 <!-- USAGE EXAMPLES -->
 ## Usage
 To use this scripts you have to first download the aliproduct 2 dataset as well as the `.json` files  and unzip each downloaded image file into a folder after this is done follow the steps below to prepare the data,
-### Data preperation 
+### Data parsing 
 1. navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/eda/aliproduct_cvpr_eda_2022.ipynb` and edit the code below with your own file paths and desired file names 
 ```py
 # file path to where your train.json is stored in your machine
@@ -50,36 +48,8 @@ val_data_csv = "../data/val_data_map.csv"
 #output file path and name for modified validation data 
 output_modified_val_data_csv = "../data/val_data_prompt_clean.csv"
 ```
-#### Cleaning data using Cosine/ITM score 
-1. to generate the Cosine/ITM score for your train data first navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/model/test_blip_filter_multi.py` next configure the variables shown in the sample code below to specify the type of scoring to use as well as other options 
-```py
 
-    #which score type to use , if Cosine use "itc" head if itm use "itm" head
-    blip_score_head = "itm"
-    #filepath and file name to train csv file 
-    train_csv = "/home/user/Desktop/AliProduct2022/train_data_v5.csv"
-
-    #caption column to run itm score on found in train csv  
-    col_to_test =  "caption"
-
-    #checkpoint of blip model you want to use 
-    checkpoint = "/home/user/Desktop/large_v5/save_checkpoint_4.pth"
-
-    #number of gpu to use for generating itm score recommended 4 gpus 
-    num_of_gpu = 4
-
-    #prefix name of each file that stores itm scores, example of output prefix_gpu_rank.pt 
-    file_prefix_name = "blip_itm_train_v5"
-
-    #folder where itm scores will be stored 
-    file_output = "./itm_score_predictions"
-
-```
-2. once you have configured the variables to your own specifications , open your terminal and type in or copy the following command `cd /home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/model` to change your working directory to the `code` folder 
-3. lastly run the script by typing or copying the following command `python test_blip_filter_multi.py` the generated result will be split into number of files = `num_of_gpu` specified in the variables configuration step above 
-4. to combine all files and to explore distribution of scores for **Cosine** navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/check_pair_cosine.ipynb` and edit the variables containing the file paths to each result generated in the previous step , please ensure you combine the files in order of the rank number contain within generated the file name. to do the same for **itm** score navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/itm_distribution.ipynb` and repeat the same steps and lastly run the notebook to generate a pickle file that contains all of the scores combined into 1 file 
-5. lastly to filter the data at a certain score threshold navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/test_threshold.ipynb` and edit the variables to specify the file path of the pickle file that contains all of the generated scores , the train `.csv` file used to generate the scores and the threshold which you want to filter by ,once the variables have been edited run the notebook to generate a new train `.csv` file  
-### Validating models
+### Validating blip and clip models
 to test the models 3 almost identical scripts have been prepared to test all checkpoints of clip, blip base and blip large to test the models ensure you have access to a gpu woth a minimum of 12 gb of vram 
 1. To test all **blip base** checkpoints navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/test_blip_checkpoints.ipynb` and edit the 2nd code cell as shown in the sample code below to specify the caption you want to test and the checkpoints you want to test and the path to the validation data csv you have generated in the data preparation step 
 ```py Edit this to specify checkpoints of models you want to test 
@@ -106,7 +76,7 @@ caption_to_test =  ["caption"]
 #path to validation data after preporcessing into csv file format 
 dataframe_path = "/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/data/val_data_prompt_clean.csv"
 ```
-3. To test **clip** checkpoints navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/test_clip_checkpoint.ipynb` and edit the 3rd code cell as shown in the sample code below to specify the caption you want to test and the checkpoints you want to test and the path to the validation data csv you have generated in the data preparation step 
+1. To test **clip** checkpoints navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/test_clip_checkpoint.ipynb` and edit the 3rd code cell as shown in the sample code below to specify the caption you want to test and the checkpoints you want to test and the path to the validation data csv you have generated in the data preparation step 
 ```py 
 #size / architecture of clip model 
 clip_model_size = "ViT-B-32"
@@ -121,9 +91,42 @@ caption_to_test =  ["caption"]
 
 #path to validation data after preporcessing into csv file format 
 dataframe_path = "/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/data/val_data_prompt_clean.csv"
-```
+``` 
 
-### Running inference on test data
+#### Cleaning data using Cosine/ITM score using blip
+1. to generate the Cosine/ITM score for your train data first navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/model/test_blip_filter_multi.py` next configure the variables shown in the sample code below to specify the type of scoring to use as well as other options 
+```py
+
+    #which score type to use , if Cosine use "itc" head if itm use "itm" head
+    blip_score_head = "itm"
+    #filepath and file name to train csv file 
+    train_csv = "/home/user/Desktop/AliProduct2022/train_data_v5.csv"
+
+    #caption column to run itm score on found in train csv  
+    col_to_test =  "caption"
+
+    #checkpoint of blip model you want to use 
+    checkpoint = "/home/user/Desktop/large_v5/save_checkpoint_4.pth"
+
+    #number of gpu to use for generating itm score recommended 4 gpus 
+    num_of_gpu = 4
+
+    #prefix name of each file that stores itm scores, example of output prefix_gpu_rank.pt 
+    file_prefix_name = "blip_itm_train_v5"
+
+    #folder where itm scores will be stored 
+    file_output = "./itm_score_predictions"
+
+```
+2. once you have configured the variables to your own specifications , open your terminal and type in or copy the following command `cd /home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/model` to change your working directory to the `code` folder 
+3. lastly run the script by typing or copying the following command `python test_blip_filter_multi.py` the generated result will be split into number of files = `num_of_gpu` specified in the variables configuration step above 
+#### combine cosine score 
+4. to combine all files and to explore distribution of scores for **Cosine** navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/check_pair_cosine.ipynb` and edit the variables containing the file paths to each result generated in the previous step , please ensure you combine the files in order of the rank number contain within generated the file name. 
+#### combine itm score 
+5. to combine all files and to explore distribution of scores for **itm** score navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/itm_distribution.ipynb` and and edit the variables containing the file paths to each result generated in the previous step , please ensure you combine the files in order of the rank number contain within generated the file name.
+6. lastly to filter the data at a certain score threshold navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/testing/test_threshold.ipynb` and edit the variables to specify the file path of the pickle file that contains all of the generated scores , the train `.csv` file used to generate the scores and the threshold which you want to filter by ,once the variables have been edited run the notebook to generate a new train `.csv` file  
+
+### Running inference on test data on blip 
 before you can run any of the test notebooks for submission you will first need to prepare the test data for testing to do this please follow the steps below 
 1. to format the data for testing navigate to `/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/test_set_inference/prepare_test_data.ipynb` edit the following file paths in the 2nd code cell if needed as shown in the sample code snippet below and finally run the notebook and you will generate a `.csv` file of the test data 
 ```py
