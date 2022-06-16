@@ -27,6 +27,7 @@ import utils
 from utils import cosine_lr_schedule
 from data import create_dataset, create_sampler, create_loader
 
+scaler = torch.cuda.amp.GradScaler()
 
 def train(model, data_loader, optimizer, epoch, device, config):
     # train
@@ -47,13 +48,16 @@ def train(model, data_loader, optimizer, epoch, device, config):
             alpha = config['alpha']
         else:
             alpha = config['alpha']*min(1,i/len(data_loader))
-
-        loss_ita, loss_itm = model(image, caption, alpha=alpha, idx=idx)                  
-        loss = loss_ita + loss_itm
+        with torch.cuda.amp.autocast():
+            loss_ita, loss_itm = model(image, caption, alpha=alpha, idx=idx)                  
+            loss = loss_ita + loss_itm
         
         optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()    
+        # loss.backward()
+        # optimizer.step()   
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update() 
         
         metric_logger.update(loss_itm=loss_itm.item())
         metric_logger.update(loss_ita=loss_ita.item())
@@ -240,7 +244,7 @@ def main(args, config):
     
     train_loader, val_loader, test_loader = create_loader([train_dataset, val_dataset, test_dataset],samplers,
                                                           batch_size=[config['batch_size_train']]+[config['batch_size_test']]*2,
-                                                          num_workers=[4,4,4],
+                                                          num_workers=[8,4,4],
                                                           is_trains=[True, False, False], 
                                                           collate_fns=[None,None,None])   
    
@@ -274,50 +278,55 @@ def main(args, config):
             cosine_lr_schedule(optimizer, epoch, config['max_epoch'], config['init_lr'], config['min_lr'])
             
             train_stats = train(model, train_loader, optimizer, epoch, device, config)  
-            
-        score_val_i2t, score_val_t2i, = evaluation(model_without_ddp, val_loader, device, config)
-        score_test_i2t, score_test_t2i = evaluation(model_without_ddp, test_loader, device, config)
-    
-        if utils.is_main_process():  
-      
-            val_result = itm_eval(score_val_i2t, score_val_t2i, val_loader.dataset.txt2img, val_loader.dataset.img2txt)  
-            print(val_result)
-                                
-            if val_result['r_mean']>best:
-                save_obj = {
+        emergency_save_obj = {
                     'model': model_without_ddp.state_dict(),
                     'optimizer': optimizer.state_dict(),
                     'config': config,
                     'epoch': epoch,
                 }
-                torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint_best.pth'))  
-                best = val_result['r_mean']        
-                best_epoch = epoch  
+        torch.save(emergency_save_obj, os.path.join(args.output_dir, f'{config["checkpoint_file_name"]}_{str(epoch+1)}.pth')) 
+        # score_val_i2t, score_val_t2i, = evaluation(model_without_ddp, val_loader, device, config)
+        # score_test_i2t, score_test_t2i = evaluation(model_without_ddp, test_loader, device, config)
+        # if utils.is_main_process():  
+      
+        #     val_result = itm_eval(score_val_i2t, score_val_t2i, val_loader.dataset.txt2img, val_loader.dataset.img2txt)  
+        #     print(val_result)
+                                
+        #     if val_result['r_mean']>best:
+        #         save_obj = {
+        #             'model': model_without_ddp.state_dict(),
+        #             'optimizer': optimizer.state_dict(),
+        #             'config': config,
+        #             'epoch': epoch,
+        #         }
+        #         torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint_best.pth'))  
+        #         best = val_result['r_mean']        
+        #         best_epoch = epoch  
                 
-                test_result = itm_eval(score_test_i2t, score_test_t2i, test_loader.dataset.txt2img, test_loader.dataset.img2txt) 
-                print(test_result)
+        #         test_result = itm_eval(score_test_i2t, score_test_t2i, test_loader.dataset.txt2img, test_loader.dataset.img2txt) 
+        #         print(test_result)
             
-            if args.evaluate:                
-                log_stats = {**{f'val_{k}': v for k, v in val_result.items()},
-                             **{f'test_{k}': v for k, v in test_result.items()},                  
-                            }
-                with open(os.path.join(args.output_dir, "evaluate.txt"),"a") as f:
-                    f.write(json.dumps(log_stats) + "\n")     
-            else:
-                log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                             **{f'val_{k}': v for k, v in val_result.items()},
-                             **{f'test_{k}': v for k, v in test_result.items()},  
-                             'epoch': epoch,
-                             'best_epoch': best_epoch,
-                            }
-                with open(os.path.join(args.output_dir, "log.txt"),"a") as f:
-                    f.write(json.dumps(log_stats) + "\n")   
+        #     if args.evaluate:                
+        #         log_stats = {**{f'val_{k}': v for k, v in val_result.items()},
+        #                      **{f'test_{k}': v for k, v in test_result.items()},                  
+        #                     }
+        #         with open(os.path.join(args.output_dir, "evaluate.txt"),"a") as f:
+        #             f.write(json.dumps(log_stats) + "\n")     
+        #     else:
+        #         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
+        #                      **{f'val_{k}': v for k, v in val_result.items()},
+        #                      **{f'test_{k}': v for k, v in test_result.items()},  
+        #                      'epoch': epoch,
+        #                      'best_epoch': best_epoch,
+        #                     }
+        #         with open(os.path.join(args.output_dir, "log.txt"),"a") as f:
+        #             f.write(json.dumps(log_stats) + "\n")   
                     
-        if args.evaluate: 
-            break
+        # if args.evaluate: 
+        #     break
 
-        dist.barrier()     
-        torch.cuda.empty_cache()
+        # dist.barrier()     
+        # torch.cuda.empty_cache()
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
@@ -327,7 +336,7 @@ def main(args, config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()     
     parser.add_argument('--config', default='./configs/retrieval_aliproduct2.yaml')
-    parser.add_argument('--output_dir', default='output/Retrieval_aliproduct2')        
+    parser.add_argument('--output_dir', default='output/base_ft_coco_v5_epoch5')        
     parser.add_argument('--evaluate', action='store_true')
     parser.add_argument('--device', default='cuda')
     parser.add_argument('--seed', default=101, type=int)

@@ -1,4 +1,6 @@
 from typing import Tuple
+
+from boto import config
 from CONFIG import CONFIG
 import clip
 import torch
@@ -45,15 +47,21 @@ def main():
     save_top_k=CONFIG.epoch,
     mode="min",
     save_last=True)
- 
-    wandb_logger = WandbLogger(project='aliproduct_2022_cvpr', job_type='Train',
-        reinit=dist.is_available() and dist.is_initialized() and dist.get_rank() == 0)
-    wandb_logger.watch(model,log="all", log_freq=100)          
-    trainer = Trainer(accelerator="gpu",devices=4,strategy="deepspeed",max_epochs=CONFIG.epoch,logger=wandb_logger,callbacks=[checkpoint_callback],precision=16,deterministic=True)
+    if CONFIG.wandb_api_key:
+        wandb_logger = WandbLogger(project='aliproduct_2022_cvpr', job_type='Train',
+            reinit=dist.is_available() and dist.is_initialized() and dist.get_rank() == 0)
+        wandb_logger.watch(model,log="all", log_freq=100)          
+        trainer = Trainer(accelerator="gpu",devices=4,strategy="deepspeed",max_epochs=CONFIG.epoch,logger=wandb_logger,callbacks=[checkpoint_callback],precision=16,deterministic=True)
+    else:
+        trainer = Trainer(accelerator="gpu",devices=4,strategy="deepspeed",max_epochs=CONFIG.epoch,callbacks=[checkpoint_callback],precision=16,deterministic=True)
+
 
     trainer.fit(model,train_loader)
 
 if __name__ == "__main__":
-    wandb.login(key=CONFIG.wandb_api_key)
-    main()
-    wandb.finish()
+    if CONFIG.wandb_api_key:
+        wandb.login(key=CONFIG.wandb_api_key)
+        main()
+        wandb.finish()
+    else:
+        main()

@@ -28,6 +28,8 @@ from utils import cosine_lr_schedule
 from data import create_dataset, create_sampler, create_loader
 from data.utils import save_result, coco_caption_eval
 
+scaler = torch.cuda.amp.GradScaler()
+
 def train(model, data_loader, optimizer, epoch, device):
     # train
     model.train()  
@@ -39,13 +41,17 @@ def train(model, data_loader, optimizer, epoch, device):
     print_freq = 50
 
     for i, (image, caption, _) in enumerate(metric_logger.log_every(data_loader, print_freq, header)):
-        image = image.to(device)       
-        
-        loss = model(image, caption)      
+        image = image.to(device)    
+
+        with torch.cuda.amp.autocast():
+            loss = model(image, caption)      
         
         optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()    
+        # loss.backward()
+        # optimizer.step()   
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()   
         
         metric_logger.update(loss=loss.item())
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
@@ -93,7 +99,7 @@ def main(args, config):
 
     #### Dataset #### 
     print("Creating captioning dataset")
-    train_dataset, val_dataset, test_dataset = create_dataset('caption_coco', config)  
+    train_dataset, val_dataset, test_dataset = create_dataset('caption_aliproduct2', config)  
 
     if args.distributed:
         num_tasks = utils.get_world_size()
@@ -134,48 +140,54 @@ def main(args, config):
             cosine_lr_schedule(optimizer, epoch, config['max_epoch'], config['init_lr'], config['min_lr'])
                 
             train_stats = train(model, train_loader, optimizer, epoch, device) 
-        
-        val_result = evaluate(model_without_ddp, val_loader, device, config)  
-        val_result_file = save_result(val_result, args.result_dir, 'val_epoch%d'%epoch, remove_duplicate='image_id')        
-  
-        test_result = evaluate(model_without_ddp, test_loader, device, config)  
-        test_result_file = save_result(test_result, args.result_dir, 'test_epoch%d'%epoch, remove_duplicate='image_id')  
-
-        if utils.is_main_process():   
-            coco_val = coco_caption_eval(config['coco_gt_root'],val_result_file,'val')
-            coco_test = coco_caption_eval(config['coco_gt_root'],test_result_file,'test')
-            
-            if args.evaluate:            
-                log_stats = {**{f'val_{k}': v for k, v in coco_val.eval.items()},
-                             **{f'test_{k}': v for k, v in coco_test.eval.items()},                       
-                            }
-                with open(os.path.join(args.output_dir, "evaluate.txt"),"a") as f:
-                    f.write(json.dumps(log_stats) + "\n")                   
-            else:             
-                save_obj = {
+        emergency_save_obj = {
                     'model': model_without_ddp.state_dict(),
                     'optimizer': optimizer.state_dict(),
                     'config': config,
                     'epoch': epoch,
                 }
+        torch.save(emergency_save_obj, os.path.join(args.output_dir, f'{config["checkpoint_file_name"]}_{str(epoch+1)}.pth')) 
+        # val_result = evaluate(model_without_ddp, val_loader, device, config)  
+        # val_result_file = save_result(val_result, args.result_dir, 'val_epoch%d'%epoch, remove_duplicate='image_id')        
+  
+        # test_result = evaluate(model_without_ddp, test_loader, device, config)  
+        # test_result_file = save_result(test_result, args.result_dir, 'test_epoch%d'%epoch, remove_duplicate='image_id')  
 
-                if coco_val.eval['CIDEr'] + coco_val.eval['Bleu_4'] > best:
-                    best = coco_val.eval['CIDEr'] + coco_val.eval['Bleu_4']
-                    best_epoch = epoch                
-                    torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint_best.pth')) 
+        # if utils.is_main_process():   
+        #     coco_val = coco_caption_eval(config['coco_gt_root'],val_result_file,'val')
+        #     coco_test = coco_caption_eval(config['coco_gt_root'],test_result_file,'test')
+            
+        #     if args.evaluate:            
+        #         log_stats = {**{f'val_{k}': v for k, v in coco_val.eval.items()},
+        #                      **{f'test_{k}': v for k, v in coco_test.eval.items()},                       
+        #                     }
+        #         with open(os.path.join(args.output_dir, "evaluate.txt"),"a") as f:
+        #             f.write(json.dumps(log_stats) + "\n")                   
+        #     else:             
+        #         save_obj = {
+        #             'model': model_without_ddp.state_dict(),
+        #             'optimizer': optimizer.state_dict(),
+        #             'config': config,
+        #             'epoch': epoch,
+        #         }
+
+        #         if coco_val.eval['CIDEr'] + coco_val.eval['Bleu_4'] > best:
+        #             best = coco_val.eval['CIDEr'] + coco_val.eval['Bleu_4']
+        #             best_epoch = epoch                
+        #             torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint_best.pth')) 
                     
-                log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                             **{f'val_{k}': v for k, v in coco_val.eval.items()},
-                             **{f'test_{k}': v for k, v in coco_test.eval.items()},                       
-                             'epoch': epoch,
-                             'best_epoch': best_epoch,
-                            }
-                with open(os.path.join(args.output_dir, "log.txt"),"a") as f:
-                    f.write(json.dumps(log_stats) + "\n")     
+        #         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
+        #                      **{f'val_{k}': v for k, v in coco_val.eval.items()},
+        #                      **{f'test_{k}': v for k, v in coco_test.eval.items()},                       
+        #                      'epoch': epoch,
+        #                      'best_epoch': best_epoch,
+        #                     }
+        #         with open(os.path.join(args.output_dir, "log.txt"),"a") as f:
+        #             f.write(json.dumps(log_stats) + "\n")     
                     
-        if args.evaluate: 
-            break
-        dist.barrier()     
+        # if args.evaluate: 
+        #     break
+        # dist.barrier()     
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
@@ -184,12 +196,12 @@ def main(args, config):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', default='./configs/caption_coco.yaml')
-    parser.add_argument('--output_dir', default='output/Caption_coco')        
+    parser.add_argument('--config', default='./configs/caption_aliproduct2.yaml')
+    parser.add_argument('--output_dir', default='output/Caption_aliproduct2')        
     parser.add_argument('--evaluate', action='store_true')    
     parser.add_argument('--device', default='cuda')
-    parser.add_argument('--seed', default=42, type=int)
-    parser.add_argument('--world_size', default=1, type=int, help='number of distributed processes')    
+    parser.add_argument('--seed', default=101, type=int)
+    parser.add_argument('--world_size', default=4, type=int, help='number of distributed processes')    
     parser.add_argument('--dist_url', default='env://', help='url used to set up distributed training')
     parser.add_argument('--distributed', default=True, type=bool)
     args = parser.parse_args()

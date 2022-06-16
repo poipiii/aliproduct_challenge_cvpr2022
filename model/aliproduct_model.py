@@ -53,9 +53,8 @@ class ALIPRODUCT_CLIP(pl.LightningModule):
             eps=CONFIG.epsilion,
             weight_decay=CONFIG.weight_decay
         )
-        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,T_max=3000)
 
-        return ([optimizer],[lr_scheduler])
+        return optimizer
     
     def training_step(self,batch,batch_idx):
         image,text = batch

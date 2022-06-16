@@ -15,7 +15,8 @@ class aliproduct2_train(Dataset):
         ann_root (string): directory to store the annotation file
         '''        
         # url = 'https://storage.googleapis.com/sfr-vision-language-research/datasets/coco_karpathy_train.json'
-        filename = 'aliproduct2_train_ann.json'
+        #filename = 'aliproduct2_train_ann_v6_base.json'
+        filename = 'aliproduct2_train_ann_v5.json'
 
         # download_url(url,ann_root)
         

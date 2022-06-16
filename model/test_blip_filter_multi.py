@@ -70,6 +70,8 @@ def test_feature(train_csv,caption_col,clip_model,head,num_of_gpu,file_prefix_na
 
 if __name__ == "__main__":
 
+    #which score type to use , if Cosine use "itc" head if itm use "itm" head
+    blip_score_head = "itm"
     #filepath and file name to train csv file 
     train_csv = "/home/user/Desktop/AliProduct2022/train_data_v5.csv"
 
@@ -88,8 +90,8 @@ if __name__ == "__main__":
     #folder where itm scores will be stored 
     file_output = "./itm_score_predictions"
 
-    clip_model =ALIPRODUCT_BLIP(checkpoint,image_size,vit="large",head="itm")
-    pred = test_feature(train_csv,col_to_test,clip_model,"itm",num_of_gpu,file_prefix_name,file_output)
+    clip_model =ALIPRODUCT_BLIP(checkpoint,image_size,vit="large",head=blip_score_head)
+    pred = test_feature(train_csv,col_to_test,clip_model,blip_score_head,num_of_gpu,file_prefix_name,file_output)
 
 
 

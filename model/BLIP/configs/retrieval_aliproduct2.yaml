@@ -1,6 +1,7 @@
 image_root: '/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/'
 ann_root: '/home/ubuntu/Desktop/CVPR 2022 AliProducts Challenge/code/data/'
 dataset: 'aliproduct2'
+checkpoint_file_name: 'base_5th_e'
 
 # set pretrained as a file path or an url
 pretrained: 'https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_base_retrieval_coco.pth'
