@@ -1,5 +1,5 @@
-**/*.pkl
 **.pkl
+**/*.pkl
 **/*.pyc
 **/*.env
 **wandb
@@ -12,3 +12,5 @@
 *.pkl
 **/*.json
 **.json
+**/*.pth
+**.pth
